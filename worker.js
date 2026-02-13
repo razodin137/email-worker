@@ -59,20 +59,47 @@ export default {
                 max_tokens: 1024
             });
 
-            const triageReport = result.response;
+            const rawJson = result.response;
             console.log("_______Begin API RESPONSE_______");
-            console.log(triageReport);
+            console.log(rawJson);
             console.log("________END API RESPONSE________");
+
+            let readableReport = rawJson;
+            try {
+                // Attempt to parse JSON and format nicely
+                const cleanJson = rawJson.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                const data = JSON.parse(cleanJson);
+
+                const actionItems = data.action_items.length > 0
+                    ? data.action_items.map((item, i) => `${i + 1}. [${item.urgency}] ${item.task} (Due: ${item.deadline})`).join('\n')
+                    : "None";
+
+                readableReport = `
+Summary
+-------
+${data.summary}
+
+Recommendation
+--------------
+${data.recommendation}
+
+Action Items
+------------
+${actionItems}
+`;
+            } catch (e) {
+                console.error("JSON parsing failed, falling back to raw output:", e);
+                // readableReport stays as rawJson
+            }
 
             // 2. Build enriched email manually (bypassing node dependencies)
             const enrichedBody = [
                 "━━━━━━━━ AI TRIAGE ━━━━━━━━",
-                "",
-                triageReport,
+                readableReport,
                 "",
                 "━━━━━━━━ ORIGINAL EMAIL ━━━━━━━━",
-                `From: ${sender} `,
-                `Subject: ${subject} `,
+                `From: ${sender}`,
+                `Subject: ${subject}`,
                 "",
                 rawBody
             ].join("\n");
