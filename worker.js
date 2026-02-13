@@ -60,7 +60,9 @@ export default {
             });
 
             const triageReport = result.response;
-            console.log("[AI Triage] Report generated successfully");
+            console.log("_______Begin API RESPONSE_______");
+            console.log(triageReport);
+            console.log("________END API RESPONSE________");
 
             // 2. Build enriched email manually (bypassing node dependencies)
             const enrichedBody = [
@@ -112,18 +114,20 @@ export default {
  */
 function constructRawEmail({ to, from, subject, body, inReplyTo }) {
     const boundary = "boundary_" + Date.now().toString(36);
+    const messageId = `<${Date.now()}@${from.split('@')[1] || 'triage.worker'}>`;
 
-    let raw = `MIME - Version: 1.0\r\n`;
-    raw += `To: ${to} \r\n`;
+    let raw = `MIME-Version: 1.0\r\n`;
+    raw += `To: ${to}\r\n`;
     raw += `From: ${from}\r\n`;
-    raw += `Subject: ${subject} \r\n`;
+    raw += `Subject: ${subject}\r\n`;
+    raw += `Message-ID: ${messageId}\r\n`;
 
     if (inReplyTo) {
-        raw += `In - Reply - To: ${inReplyTo} \r\n`;
-        raw += `References: ${inReplyTo} \r\n`;
+        raw += `In-Reply-To: ${inReplyTo}\r\n`;
+        raw += `References: ${inReplyTo}\r\n`;
     }
 
-    raw += `Content - Type: text / plain; charset = UTF - 8\r\n`;
+    raw += `Content-Type: text/plain; charset=UTF-8\r\n`;
     raw += `\r\n`;
     raw += body;
 
