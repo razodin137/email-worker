@@ -1,0 +1,23 @@
+{
+  "name": "email-worker",
+  "version": "1.0.0",
+  "description": "A Cloudflare Worker for handling email operations.",
+  "main": "worker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/razodin137/email-worker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/razodin137/email-worker/issues"
+  },
+  "homepage": "https://github.com/razodin137/email-worker#readme",
+  "dependencies": {
+    "mimetext": "^3.0.28"
+  }
+}

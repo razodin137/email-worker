@@ -1,7 +1,9 @@
-// src/index.ts — Email Triage Worker
+// Email Triage Worker — enriches forwarded email with AI triage report
+import { EmailMessage } from "cloudflare:email";
+import { createMimeMessage } from "mimetext";
+
 const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct";
 
-// Assertive system prompt: forces the model to process immediately, no preamble
 const TRIAGE_SYSTEM_PROMPT = `You are an executive assistant AI. You will receive a raw email below.
 Your ONLY job is to analyze it and produce a triage report. Do NOT ask for more information.
 Do NOT say "I'm ready" or "please provide". The email is ALREADY in the user message.
@@ -32,22 +34,19 @@ None — this is an informational/promotional email.
 ## Recommendation
 Archive or delete.`;
 
+const FORWARD_TO = "jcamnorman@gmail.com";
+
 export default {
-    /**
-     * Handler for incoming emails via Cloudflare Email Routing
-     */
     async email(message, env, ctx) {
         const subject = message.headers.get("subject") || "No Subject";
         const sender = message.from;
         const recipient = message.to;
-
-        // 1. Extract the body text from the email
         const rawBody = await new Response(message.body).text();
 
         console.log(`[Email Received] From: ${sender} | Subject: ${subject}`);
 
         try {
-            // 2. Run the Triage through Llama — assertive prompt with data inline
+            // 1. Run AI triage
             const result = await env.AI.run(MODEL_ID, {
                 messages: [
                     { role: "system", content: TRIAGE_SYSTEM_PROMPT },
@@ -61,53 +60,58 @@ export default {
             });
 
             const triageReport = result.response;
+            console.log("[AI Triage] Report generated successfully");
 
-            console.log("--- AI TRIAGE REPORT START ---");
-            console.log(triageReport);
-            console.log("--- AI TRIAGE REPORT END ---");
+            // 2. Build one enriched email: triage report + original body
+            const msg = createMimeMessage();
+            msg.setSender({ name: "Triage AI", addr: recipient });
+            msg.setRecipient(FORWARD_TO);
+            msg.setSubject(`📋 ${subject}`);
 
-            // 3. Forward the original email with the triage report prepended
-            //    This sends the report back to the original recipient's inbox
-            //    so they see the AI analysis alongside the original message.
-            const reportHeader = new Map(message.headers);
+            // Thread it with the original
+            const messageId = message.headers.get("message-id");
+            if (messageId) {
+                msg.setHeader("In-Reply-To", messageId);
+                msg.setHeader("References", messageId);
+            }
 
-            // Create a new email body with the triage report prepended
-            const enhancedBody = [
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-                "📋 AI TRIAGE REPORT",
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            // Single body: report on top, original below
+            const enrichedBody = [
+                "━━━━━━━━ AI TRIAGE ━━━━━━━━",
                 "",
                 triageReport,
                 "",
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-                "📨 ORIGINAL EMAIL BELOW",
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                "━━━━━━━━ ORIGINAL EMAIL ━━━━━━━━",
+                `From: ${sender}`,
+                `Subject: ${subject}`,
                 "",
                 rawBody
             ].join("\n");
 
-            // Forward to yourself with the triage analysis
-            // Change this address to wherever you want reports delivered
-            await message.forward("jcamnorman@gmail.com", reportHeader);
+            msg.addMessage({
+                contentType: "text/plain",
+                data: enrichedBody
+            });
 
-            console.log(`[Triage Complete] Report forwarded for: ${subject}`);
+            await env.SEND_EMAIL.send(
+                new EmailMessage(recipient, FORWARD_TO, msg.asRaw())
+            );
+
+            console.log(`[Done] Enriched email sent for: ${subject}`);
 
         } catch (error) {
-            console.error("Inference Error:", error.message);
-            // Still forward the email even if AI fails, so nothing gets lost
+            console.error("Error:", error.message);
+            // Fallback: forward as-is so nothing gets lost
             try {
-                await message.forward("jcamnorman@gmail.com");
-                console.log("[Fallback] Email forwarded without triage report.");
+                await message.forward(FORWARD_TO);
+                console.log("[Fallback] Forwarded without triage.");
             } catch (fwdError) {
                 console.error("Forward Error:", fwdError.message);
             }
         }
     },
 
-    /**
-     * Health check endpoint
-     */
     async fetch(request, env) {
-        return new Response("Triage Worker is active. Send emails to trigger.", { status: 200 });
+        return new Response("Triage Worker active.", { status: 200 });
     }
 };
