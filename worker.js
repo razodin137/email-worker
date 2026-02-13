@@ -39,7 +39,11 @@ export default {
         const recipient = message.to;
         const rawBody = await new Response(message.body).text();
 
-        console.log(`[Email Received]From: ${sender} | Subject: ${subject} `);
+        console.log(`[Email Received] From: ${sender} | To: ${recipient} | Subject: ${subject}`);
+
+        if (!recipient) {
+            console.error("No recipient (message.to) found!");
+        }
 
         try {
             // 1. Run AI triage
@@ -111,7 +115,7 @@ function constructRawEmail({ to, from, subject, body, inReplyTo }) {
 
     let raw = `MIME - Version: 1.0\r\n`;
     raw += `To: ${to} \r\n`;
-    raw += `From: "Triage AI" < ${from}>\r\n`;
+    raw += `From: ${from}\r\n`;
     raw += `Subject: ${subject} \r\n`;
 
     if (inReplyTo) {
