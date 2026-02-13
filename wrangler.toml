@@ -1,19 +1,21 @@
 name = "email-worker"
 main = "worker.js"
-compatibility_date = "2024-02-13"
+compatibility_date = "2024-05-02"
 
-# [vars]
-# MY_VARIABLE = "production_value"
+# 1. THE MISSING PIECE: AI Binding
+# This allows env.AI.run() to function
+[ai]
+binding = "AI"
 
-# [[kv_namespaces]]
-# binding = "MY_KV_NAMESPACE"
-# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# 2. Performance & Capability Flags
+# Ensures modern JavaScript features and Node.js polyfills work
+compatibility_flags = [ "nodejs_compat" ]
 
-# [[r2_buckets]]
-# binding = "MY_BUCKET"
-# bucket_name = "my-bucket"
+# 3. Observability
+# This helps with debugging in the Cloudflare Dashboard
+[observability]
+enabled = true
 
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "my-database"
-# database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# Note: You do not need to define the email address here. 
+# Email routing is configured in the Cloudflare Dashboard UI 
+# under "Email" -> "Email Routing".
