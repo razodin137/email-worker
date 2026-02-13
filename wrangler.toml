@@ -2,14 +2,16 @@ name = "email-worker"
 main = "worker.js"
 compatibility_date = "2024-05-02"
 
+# 2. Performance & Capability Flags
+# Ensures modern JavaScript features and Node.js polyfills work
+compatibility_flags = [ "nodejs_compat" ]
+
 # 1. THE MISSING PIECE: AI Binding
 # This allows env.AI.run() to function
 [ai]
 binding = "AI"
 
-# 2. Performance & Capability Flags
-# Ensures modern JavaScript features and Node.js polyfills work
-compatibility_flags = [ "nodejs_compat" ]
+
 
 # 3. Observability
 # This helps with debugging in the Cloudflare Dashboard
