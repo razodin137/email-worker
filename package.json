@@ -17,7 +17,5 @@
     "url": "https://github.com/razodin137/email-worker/issues"
   },
   "homepage": "https://github.com/razodin137/email-worker#readme",
-  "dependencies": {
-    "mimetext": "^3.0.28"
-  }
+  "dependencies": {}
 }

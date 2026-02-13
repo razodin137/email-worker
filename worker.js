@@ -1,6 +1,5 @@
 // Email Triage Worker — enriches forwarded email with AI triage report
 import { EmailMessage } from "cloudflare:email";
-import { createMimeMessage } from "mimetext";
 
 const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct";
 
@@ -62,20 +61,7 @@ export default {
             const triageReport = result.response;
             console.log("[AI Triage] Report generated successfully");
 
-            // 2. Build one enriched email: triage report + original body
-            const msg = createMimeMessage();
-            msg.setSender({ name: "Triage AI", addr: recipient });
-            msg.setRecipient(FORWARD_TO);
-            msg.setSubject(`📋 ${subject}`);
-
-            // Thread it with the original
-            const messageId = message.headers.get("message-id");
-            if (messageId) {
-                msg.setHeader("In-Reply-To", messageId);
-                msg.setHeader("References", messageId);
-            }
-
-            // Single body: report on top, original below
+            // 2. Build enriched email manually (bypassing node dependencies)
             const enrichedBody = [
                 "━━━━━━━━ AI TRIAGE ━━━━━━━━",
                 "",
@@ -88,13 +74,16 @@ export default {
                 rawBody
             ].join("\n");
 
-            msg.addMessage({
-                contentType: "text/plain",
-                data: enrichedBody
+            const rawEmail = constructRawEmail({
+                to: FORWARD_TO,
+                from: recipient, // Sent "from" the original recipient address to the final destination
+                subject: `📋 ${subject}`,
+                body: enrichedBody,
+                inReplyTo: message.headers.get("message-id")
             });
 
             await env.SEND_EMAIL.send(
-                new EmailMessage(recipient, FORWARD_TO, msg.asRaw())
+                new EmailMessage(recipient, FORWARD_TO, rawEmail)
             );
 
             console.log(`[Done] Enriched email sent for: ${subject}`);
@@ -115,3 +104,27 @@ export default {
         return new Response("Triage Worker active.", { status: 200 });
     }
 };
+
+/**
+ * Constructs a raw MIME email string manually.
+ * Avoids using 'mimetext' or other libraries that depend on Node.js built-ins.
+ */
+function constructRawEmail({ to, from, subject, body, inReplyTo }) {
+    const boundary = "boundary_" + Date.now().toString(36);
+
+    let raw = `MIME-Version: 1.0\r\n`;
+    raw += `To: ${to}\r\n`;
+    raw += `From: "Triage AI" <${from}>\r\n`;
+    raw += `Subject: ${subject}\r\n`;
+
+    if (inReplyTo) {
+        raw += `In-Reply-To: ${inReplyTo}\r\n`;
+        raw += `References: ${inReplyTo}\r\n`;
+    }
+
+    raw += `Content-Type: text/plain; charset=UTF-8\r\n`;
+    raw += `\r\n`;
+    raw += body;
+
+    return raw;
+}
