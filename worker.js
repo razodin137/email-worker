@@ -4,34 +4,31 @@ import { EmailMessage } from "cloudflare:email";
 const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct";
 
 const TRIAGE_SYSTEM_PROMPT = `You are an executive assistant AI. You will receive a raw email below.
-Your ONLY job is to analyze it and produce a triage report. Do NOT ask for more information.
+Your ONLY job is to analyze it and produce a JSON triage report. Do NOT ask for more information.
 Do NOT say "I'm ready" or "please provide". The email is ALREADY in the user message.
-Produce the report IMMEDIATELY using this exact format:
+Produce the report IMMEDIATELY as a valid JSON object using this exact structure:
 
-# Triage Report
+{
+  "summary": "One-sentence summary of what this email is about",
+  "action_items": [
+    {
+      "task": "Description of task",
+      "deadline": "YYYY-MM-DD or None",
+      "urgency": "High/Medium/Low",
+      "importance": "High/Medium/Low"
+    }
+  ],
+  "recommendation": "One short sentence: what should the recipient do first?"
+}
 
-## Summary
-(One-sentence summary of what this email is about)
+If the email contains NO actionable items (e.g. newsletters, promotions, notifications), return:
+{
+  "summary": "Summary of the email",
+  "action_items": [],
+  "recommendation": "Archive or delete."
+}
 
-## Action Items
-| # | Task | Deadline | Urgency | Importance |
-|---|------|----------|---------|------------|
-(List every actionable item. Use "None" for deadline if not specified.
-Urgency: 🔴 Urgent / 🟡 Soon / 🟢 Low
-Importance: 🔴 Critical / 🟡 Moderate / 🟢 Minor)
-
-## Recommendation
-(One short sentence: what should the recipient do first?)
-
-If the email contains NO actionable items (e.g. newsletters, promotions, notifications),
-simply respond with:
-# Triage Report
-## Summary
-(summary)
-## Action Items
-None — this is an informational/promotional email.
-## Recommendation
-Archive or delete.`;
+Output ONLY the JSON. Do not include markdown code fence blocks (like ```json).Just the raw JSON string.`;
 
 const FORWARD_TO = "jcamnorman@gmail.com";
 
@@ -42,7 +39,7 @@ export default {
         const recipient = message.to;
         const rawBody = await new Response(message.body).text();
 
-        console.log(`[Email Received] From: ${sender} | Subject: ${subject}`);
+        console.log(`[Email Received]From: ${ sender } | Subject: ${ subject } `);
 
         try {
             // 1. Run AI triage
@@ -51,7 +48,7 @@ export default {
                     { role: "system", content: TRIAGE_SYSTEM_PROMPT },
                     {
                         role: "user",
-                        content: `ANALYZE THIS EMAIL NOW:\n\nFrom: ${sender}\nSubject: ${subject}\n\n---BEGIN EMAIL BODY---\n${rawBody}\n---END EMAIL BODY---`
+                        content: `ANALYZE THIS EMAIL NOW: \n\nFrom: ${ sender } \nSubject: ${ subject } \n\n-- - BEGIN EMAIL BODY-- -\n${ rawBody } \n-- - END EMAIL BODY-- - `
                     }
                 ],
                 stream: false,
@@ -68,8 +65,8 @@ export default {
                 triageReport,
                 "",
                 "━━━━━━━━ ORIGINAL EMAIL ━━━━━━━━",
-                `From: ${sender}`,
-                `Subject: ${subject}`,
+                `From: ${ sender } `,
+                `Subject: ${ subject } `,
                 "",
                 rawBody
             ].join("\n");
@@ -77,7 +74,7 @@ export default {
             const rawEmail = constructRawEmail({
                 to: FORWARD_TO,
                 from: recipient, // Sent "from" the original recipient address to the final destination
-                subject: `📋 ${subject}`,
+                subject: `📋 ${ subject } `,
                 body: enrichedBody,
                 inReplyTo: message.headers.get("message-id")
             });
@@ -86,7 +83,7 @@ export default {
                 new EmailMessage(recipient, FORWARD_TO, rawEmail)
             );
 
-            console.log(`[Done] Enriched email sent for: ${subject}`);
+            console.log(`[Done] Enriched email sent for: ${ subject } `);
 
         } catch (error) {
             console.error("Error:", error.message);
@@ -112,17 +109,17 @@ export default {
 function constructRawEmail({ to, from, subject, body, inReplyTo }) {
     const boundary = "boundary_" + Date.now().toString(36);
 
-    let raw = `MIME-Version: 1.0\r\n`;
-    raw += `To: ${to}\r\n`;
-    raw += `From: "Triage AI" <${from}>\r\n`;
-    raw += `Subject: ${subject}\r\n`;
+    let raw = `MIME - Version: 1.0\r\n`;
+    raw += `To: ${ to } \r\n`;
+    raw += `From: "Triage AI" < ${ from }>\r\n`;
+    raw += `Subject: ${ subject } \r\n`;
 
     if (inReplyTo) {
-        raw += `In-Reply-To: ${inReplyTo}\r\n`;
-        raw += `References: ${inReplyTo}\r\n`;
+        raw += `In - Reply - To: ${ inReplyTo } \r\n`;
+        raw += `References: ${ inReplyTo } \r\n`;
     }
 
-    raw += `Content-Type: text/plain; charset=UTF-8\r\n`;
+    raw += `Content - Type: text / plain; charset = UTF - 8\r\n`;
     raw += `\r\n`;
     raw += body;
 

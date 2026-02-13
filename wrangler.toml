@@ -21,3 +21,8 @@ enabled = true
 # Note: You do not need to define the inbound email address here. 
 # Email routing is configured in the Cloudflare Dashboard UI 
 # under "Email" -> "Email Routing".
+
+# 3. Email Sending Binding
+# Fixes "Cannot read properties of undefined (reading 'send')"
+[[send_email]]
+name = "SEND_EMAIL"
