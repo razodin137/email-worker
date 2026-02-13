@@ -28,7 +28,7 @@ If the email contains NO actionable items (e.g. newsletters, promotions, notific
   "recommendation": "Archive or delete."
 }
 
-Output ONLY the JSON. Do not include markdown code fence blocks (like ```json).Just the raw JSON string.`;
+Output ONLY the JSON. Do not include markdown code fence blocks (like \`\`\`json).Just the raw JSON string.`;
 
 const FORWARD_TO = "jcamnorman@gmail.com";
 
@@ -39,7 +39,7 @@ export default {
         const recipient = message.to;
         const rawBody = await new Response(message.body).text();
 
-        console.log(`[Email Received]From: ${ sender } | Subject: ${ subject } `);
+        console.log(`[Email Received]From: ${sender} | Subject: ${subject} `);
 
         try {
             // 1. Run AI triage
@@ -48,7 +48,7 @@ export default {
                     { role: "system", content: TRIAGE_SYSTEM_PROMPT },
                     {
                         role: "user",
-                        content: `ANALYZE THIS EMAIL NOW: \n\nFrom: ${ sender } \nSubject: ${ subject } \n\n-- - BEGIN EMAIL BODY-- -\n${ rawBody } \n-- - END EMAIL BODY-- - `
+                        content: `ANALYZE THIS EMAIL NOW: \n\nFrom: ${sender} \nSubject: ${subject} \n\n-- - BEGIN EMAIL BODY-- -\n${rawBody} \n-- - END EMAIL BODY-- - `
                     }
                 ],
                 stream: false,
@@ -65,8 +65,8 @@ export default {
                 triageReport,
                 "",
                 "━━━━━━━━ ORIGINAL EMAIL ━━━━━━━━",
-                `From: ${ sender } `,
-                `Subject: ${ subject } `,
+                `From: ${sender} `,
+                `Subject: ${subject} `,
                 "",
                 rawBody
             ].join("\n");
@@ -74,7 +74,7 @@ export default {
             const rawEmail = constructRawEmail({
                 to: FORWARD_TO,
                 from: recipient, // Sent "from" the original recipient address to the final destination
-                subject: `📋 ${ subject } `,
+                subject: `📋 ${subject} `,
                 body: enrichedBody,
                 inReplyTo: message.headers.get("message-id")
             });
@@ -83,7 +83,7 @@ export default {
                 new EmailMessage(recipient, FORWARD_TO, rawEmail)
             );
 
-            console.log(`[Done] Enriched email sent for: ${ subject } `);
+            console.log(`[Done] Enriched email sent for: ${subject} `);
 
         } catch (error) {
             console.error("Error:", error.message);
@@ -110,13 +110,13 @@ function constructRawEmail({ to, from, subject, body, inReplyTo }) {
     const boundary = "boundary_" + Date.now().toString(36);
 
     let raw = `MIME - Version: 1.0\r\n`;
-    raw += `To: ${ to } \r\n`;
-    raw += `From: "Triage AI" < ${ from }>\r\n`;
-    raw += `Subject: ${ subject } \r\n`;
+    raw += `To: ${to} \r\n`;
+    raw += `From: "Triage AI" < ${from}>\r\n`;
+    raw += `Subject: ${subject} \r\n`;
 
     if (inReplyTo) {
-        raw += `In - Reply - To: ${ inReplyTo } \r\n`;
-        raw += `References: ${ inReplyTo } \r\n`;
+        raw += `In - Reply - To: ${inReplyTo} \r\n`;
+        raw += `References: ${inReplyTo} \r\n`;
     }
 
     raw += `Content - Type: text / plain; charset = UTF - 8\r\n`;
