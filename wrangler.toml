@@ -18,11 +18,6 @@ binding = "AI"
 [observability]
 enabled = true
 
-# 4. Send Email Binding — allows the worker to send reply emails
-[[send_email]]
-name = "SEND_EMAIL"
-destination_address = "jcamnorman@gmail.com"
-
 # Note: You do not need to define the inbound email address here. 
 # Email routing is configured in the Cloudflare Dashboard UI 
 # under "Email" -> "Email Routing".
